@@ -10,11 +10,16 @@ public class SimplePluginTest : MonoBehaviour
     [DllImport(DLL_NAME)]
     private static extern int SimpleFunction();
 
+    public void SimpleFunctionCall()
+    {
+        Debug.Log(SimpleFunction());
+    }
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.S))
         {
-            Debug.Log(SimpleFunction());
+            SimpleFunctionCall();
         }
     }
 }
