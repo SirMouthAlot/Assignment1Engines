@@ -11,17 +11,8 @@ public class SpawnObject : MonoBehaviour
     public GameObject yellowCube;
     public GameObject blueCube;
 
-    private Camera cam;
-
     private GameObject tempHold;
     private bool objSelected = false;
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        cam = Camera.main;
-    }
 
     // Update is called once per frame
     void Update()
