@@ -4,11 +4,16 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - YellowCube
-  - RedCube
-  - PurpleCube
-  - GreenCube
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
   - BlueCube
+  - GreenCube
+  - PurpleCube
+  - RedCube
+  - YellowCube
   layers:
   - Default
   - TransparentFX

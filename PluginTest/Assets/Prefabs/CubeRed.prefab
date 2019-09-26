@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1030342803294940742}
   m_Layer: 0
   m_Name: CubeRed
-  m_TagString: RedCube
+  m_TagString: 2
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
