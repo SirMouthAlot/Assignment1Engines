@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Runtime.InteropServices;
 
+//Enum to indicate each prefab for Level editor
 public enum ObjectType
 {
     GREENCUBE,
@@ -12,7 +13,7 @@ public enum ObjectType
     BLUECUBE,
 }
 
-//Holds info needed to reinstantiate a cube at same place
+//Holds info needed to reinstantiate a prefab at same place
 public struct ObjectInfo
 {
     public ObjectInfo(Vector3 _position, Vector3 _rotation, ObjectType _type)
@@ -30,47 +31,82 @@ public struct ObjectInfo
 
 public class SpawnObject : MonoBehaviour
 {
+
+    //All my DLL function imports... there are a lot
+    //Could possibly start marshalling structs in
+    //But for now, for this specific assignment, I think this should suffice
+    #region DLL IMPORTS
     const string DLL_NAME = "SIMPLEPLUGIN";
 
+    //Saves the objects to the json object
     [DllImport(DLL_NAME)]
     private static extern void SaveScene();
+    //Saves the json object to the file
     [DllImport(DLL_NAME)]
     private static extern void SaveFile([MarshalAs(UnmanagedType.LPStr)]string name);
     
+    //Loads the json object in from the file
     [DllImport(DLL_NAME)]
     private static extern void LoadFile([MarshalAs(UnmanagedType.LPStr)]string name);
+    //Loads in the objects from the json object
     [DllImport(DLL_NAME)]
     private static extern void LoadScene();
 
-
+    //Add Object to the list
     [DllImport(DLL_NAME)]
     private static extern void AddObject(float[] _position, float[] _rotation, int _type);
+
+    //Gets position components
     [DllImport(DLL_NAME)]
-    private static extern float[] GetObjectPositionInst(int index);
+    private static extern float GetObjectPosX(int index);
     [DllImport(DLL_NAME)]
-    private static extern void DeleteObjectPositionInst(float[] pos);
+    private static extern float GetObjectPosY(int index);
     [DllImport(DLL_NAME)]
-    private static extern float[] GetObjectRotationInst(int index);
+    private static extern float GetObjectPosZ(int index);
+    
+    //Gets rotation components
     [DllImport(DLL_NAME)]
-    private static extern void DeleteObjectRotationInst(float[] pos);
+    private static extern float GetObjectRotX(int index);
+    [DllImport(DLL_NAME)]
+    private static extern float GetObjectRotY(int index);
+    [DllImport(DLL_NAME)]
+    private static extern float GetObjectRotZ(int index);
+
+    //Gets object type
     [DllImport(DLL_NAME)]
     private static extern int GetObjectType(int index);
     
+    //Gets the object count
+    [DllImport(DLL_NAME)]
+    private static extern int GetObjectCount();
+
+    //Clears out the list to prep for new save version
     [DllImport(DLL_NAME)]
     private static extern void ClearList();
+    #endregion
 
+    //Object prefabs for instantiating
     public List<GameObject> LevelObjects;
 
+    //Holds the game object you're currently selecting
     private GameObject tempHold;
+    //Do you have anything selected???
     private bool objSelected = false;
 
+    //Lists for
+    /// Objects In Scene altogether
+    /// Objects that were added during THIS session
+    /// List of object info left so we can redo
     private List<GameObject> objectsInScene = new List<GameObject>();
     private List<GameObject> objectsThisSession = new List<GameObject>();
     private List<ObjectInfo> redoList = new List<ObjectInfo>();
 
+    //Name of the file for the scene (can be changed mid run to create/load more levels)
+    //This change happens within the Inspector
+    //Please do not put a filename here that doesn't exist and then attempt to load, as it will crash Unity
     public string SceneName = "";
 
-    // Update is called once per frame
+   //Allow for the object to follow your mouse until you click to place it
     void Update()
     {
        
@@ -96,12 +132,15 @@ public class SpawnObject : MonoBehaviour
                 objectsInScene.Add(tempHold);
                 //Add the object to the list of objects we've added this session
                 objectsThisSession.Add(tempHold);
+
+                tempHold = null;
             }
 
             objSelected = false;
         }
     }
 
+    //Saves the level on screen as a file with the a name equal to the one written in the Inspector as LevelName
     public void SaveGame()
     {   
         Debug.Log("Please Kill me");
@@ -110,7 +149,7 @@ public class SpawnObject : MonoBehaviour
 
         for (int i = 0; i < objectsInScene.Count; i++)
         {
-           //Gets game object
+            //Gets game object
             GameObject obj = objectsInScene[i];
             float[] pos = { obj.transform.position.x, obj.transform.position.y, obj.transform.position.z };
             float[] rot = { obj.transform.rotation.eulerAngles.x, obj.transform.rotation.eulerAngles.y, obj.transform.rotation.eulerAngles.z };
@@ -124,14 +163,53 @@ public class SpawnObject : MonoBehaviour
         SaveFile(SceneName);
     }
 
+    //Loads the current written string (in inspector) as a level
+    //TODO: Check to make sure the file actually exists before attempting to load
     public void LoadGame()
     {
+        ClearGame();
+
         Debug.Log("Don't Kill me now bitch");
-        
+
         LoadFile(SceneName);
         LoadScene();
 
-        
+        int objectCount = GetObjectCount();
+
+        for (int i = 0; i < objectCount; i++)
+        {
+            //Converts to Vector3
+            Vector3 pos = new Vector3(GetObjectPosX(i), GetObjectPosY(i), GetObjectPosZ(i));
+            //Converts to Vector3
+            Vector3 rot = new Vector3(GetObjectRotX(i), GetObjectRotY(i), GetObjectRotZ(i));
+            //Casts it to ObjectType
+            ObjectType type = (ObjectType)GetObjectType(i);
+
+            //Adds objects to scene
+            objectsInScene.Add(SpawnObjScene(LevelObjects[(int)type], pos, rot));
+        }
+    }
+
+    public void ClearGame()
+    {
+         //Cleans up tempHold
+        tempHold = null;
+
+        //Destroys all objects in scene currently
+        for (int i = 0; i < objectsInScene.Count; i++)
+        {
+            Destroy(objectsInScene[i]);
+        }
+
+        //Clears objects in scene
+        objectsInScene.Clear();
+        //Clears objects this session
+        objectsThisSession.Clear();
+        //clears redo list
+        redoList.Clear();
+
+        //Clears vector in DLL
+        ClearList();
     }
 
     //Spawns object in the scene, at a specific position and rotation.
@@ -154,6 +232,8 @@ public class SpawnObject : MonoBehaviour
         redoList.Clear();
     }
 
+    //Undo function
+    //Will be reworked into a command style call
     public void RemoveLastObject()
     {
         //Will only remove objects added this session, will not undo anything from before
@@ -179,6 +259,8 @@ public class SpawnObject : MonoBehaviour
         }
     }
 
+    //Redo function
+    //Will be reworked into a command style call
     public void AddBackLastRemoved()
     {
         if (redoList.Count >= 1)
