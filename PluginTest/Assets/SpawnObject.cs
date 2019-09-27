@@ -143,8 +143,6 @@ public class SpawnObject : MonoBehaviour
     //Saves the level on screen as a file with the a name equal to the one written in the Inspector as LevelName
     public void SaveGame()
     {   
-        Debug.Log("Please Kill me");
-
         ClearList();
 
         for (int i = 0; i < objectsInScene.Count; i++)
@@ -168,8 +166,6 @@ public class SpawnObject : MonoBehaviour
     public void LoadGame()
     {
         ClearGame();
-
-        Debug.Log("Don't Kill me now bitch");
 
         LoadFile(SceneName);
         LoadScene();
